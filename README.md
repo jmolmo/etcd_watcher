@@ -1,7 +1,7 @@
 # etcd_watcher
 
 A basic Publisher/Subscriptor pattern implementation using etcd clients as publishers. The publisher is any kind of client able to write keys in the etcd database.
-Subscriptors, should use the api provided by the watcher object in order to be warned about changes in the keys which are interesting for the subscriber.  
+Subscribers, should use the api provided by the watcher object in order to be warned about changes in the keys which are interesting for the subscriber.  
 
 
 ## Example of use:
