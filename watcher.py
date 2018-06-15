@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import threading
-import etcd
 import logging
+import etcd
 from urllib3.exceptions import ReadTimeoutError
 
 
@@ -10,14 +10,14 @@ from urllib3.exceptions import ReadTimeoutError
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter(
-           '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
 class Subscriber():
-    """A subscriber object does not know nothing about the publisher, 
+    """A subscriber object does not know nothing about the publisher,
     but is interested in doing things when an etcd key will change
     """
     def __init__(self, name):
@@ -31,24 +31,26 @@ class Subscriber():
         @value: Current value for this key
         """
         print("Subscriber: %s: Changes in '%s', the value has "
-              "changed to '%s'" % (self.name,key, value))
-        
-class Watcher():
- 
-    def __init__(self):
-        """Watcher component
-        This component allows clients(subscribers) to subscribe to the change
-         in etcd keys. 
-        Programs making changes in the etcd keys are the publishers. 
-        Publishers are not aware about how many subscribers are interested in 
-        certain key.
+              "changed to '%s'" % (self.name, key, value))
 
-        Watcher has a dict of keys each one with a dict with the subscribers 
-        interested in the key.
-        The value of each item in the dict of subscribers is the callback 
-        function to execute when the etcd key changes  
+class Watcher():
+    """Watcher component
+
+    This component allows clients(subscribers) to subscribe to the change
+     in etcd keys.
+    Programs making changes in the etcd keys are the publishers.
+    Publishers are not aware about how many subscribers are interested in
+    certain key.
+
+    Watcher has a dict of keys each one with a dict with the subscribers
+    interested in the key.
+    The value of each item in the dict of subscribers is the callback
+    function to execute when the etcd key changes
+    """
+
+    def __init__(self):
+        """Initialization
         """
-        #Initialization
         self.client = etcd.Client()
         self.keys = {}
 
@@ -74,22 +76,22 @@ class Watcher():
 
         # Store the callback function
         self.keys[key][who.name] = getattr(who, what)
-        logger.info("'%s' subscribed to key '%s' with callback '%s'" ,
+        logger.info("'%s' subscribed to key '%s' with callback '%s'",
                     who, key, what)
 
 
     def unregister(self, key, who):
         """To use when a subscriber is not interested anymore in a key
         @key: The key to unsubscribe
-        @who: The subscriber 
+        @who: The subscriber
         """
 
         # Remove the subscriber from the list of this key
         if who.name in self.keys[key]:
             del self.keys[key][who.name]
-            logger.info("'%s' unsubscribed to key '%s'" , who, key)
+            logger.info("'%s' unsubscribed to key '%s'", who, key)
 
-        # If nobody interested in this key, avoid to have a thread 
+        # If nobody interested in this key, avoid to have a thread
         # watching the key
         if not self.keys[key].keys():
             del self.keys[key]
@@ -111,20 +113,20 @@ class Watcher():
         # Start the thread to watch this key.
         try:
             threading.Thread(target=self.watch, args=(key,)).start()
-            logger.info("Key '%s' added to watcher" , key)
+            logger.info("Key '%s' added to watcher", key)
         except Exception as ex:
-            logger.error("unexpected error adding key '%s' to watcher" , key)
+            logger.error("unexpected error adding key '%s' to watcher: %s", key, ex)
 
     def remove_key(self, key):
         """Remove a key from being watched. This will affect also subscribers
         because if the key change they won't be warned
         @key: etcd key that we want do not watch anymore
         """
-        # Removing the key from the dict the watch thread will die 
+        # Removing the key from the dict the watch thread will die
         # in the next timeout
         if key in self.keys.keys():
             del self.keys[key]
-            logger.info("Key '%s' removed from watcher" , key)
+            logger.info("Key '%s' removed from watcher", key)
 
     def dispatch(self, key, value):
         """Warn all the subscribers about an etcd key changed.
@@ -142,8 +144,8 @@ class Watcher():
 
             # Who knows what extrange things can try to do the subscriber
             except Exception as ex:
-                logger.error("%s: key(%s).Unexpected error in callback to '%s'", 
-                            subscriber, key, callback)
+                logger.error("%s: key(%s).Unexpected error in callback to '%s':%s",
+                             subscriber, key, callback, ex)
 
 
     def watch(self, key):
@@ -165,8 +167,7 @@ class Watcher():
             except ReadTimeoutError:
                 # Doing nothing we relaunch the watch of this key
                 pass
-            # Other horrible an unexpected things can happen, 
+            # Other horrible an unexpected things can happen,
             # but we will continue trying to watch this key
             except Exception as ex:
                 logger.error("Watching key: %s. Unexpected error: %s", key, ex)
-
